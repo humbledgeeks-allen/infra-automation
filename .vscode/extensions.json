@@ -1,0 +1,12 @@
+{
+    "recommendations": [
+        "github.vscode-pull-request-github",
+        "eamodio.gitlens",
+        "ms-python.python",
+        "ms-vscode.powershell",
+        "redhat.ansible",
+        "davidanson.vscode-markdownlint",
+        "yzhang.markdown-all-in-one",
+        "streetsidesoftware.code-spell-checker"
+    ]
+}
