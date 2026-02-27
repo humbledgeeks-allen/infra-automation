@@ -52,8 +52,8 @@ A collection of automation scripts and playbooks for VMware, NetApp, Cisco, and 
 
 | Subfolder | Tool | Description |
 |-----------|------|-------------|
-| [Linux/Ubuntu](./Linux/Ubuntu) | Shell | Ubuntu server setup, Docker installation, and Docker Compose configs |
-| [Linux/Synology](./Linux/Synology) | Shell | Synology NAS backup and sync scripts |
+| [Linux/Ubuntu/Shell](./Linux/Ubuntu/Shell) | Shell | Ubuntu server setup, Docker installation, and Docker Compose configs |
+| [Linux/Synology/Shell](./Linux/Synology/Shell) | Shell | Synology NAS backup and sync scripts |
 
 ---
 
