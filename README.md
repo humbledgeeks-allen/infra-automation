@@ -36,7 +36,6 @@ A collection of automation scripts and operational runbooks for VMware, NetApp, 
 | [Ansible/VMware/HDC](./Ansible/VMware/HDC) | Hybrid Data Center ESXi configuration playbooks |
 | [Ansible/NetApp/ONTAP-Learning](./Ansible/NetApp/ONTAP-Learning) | Step-by-step Ansible for NetApp ONTAP tutorial series (00–08) |
 | [Ansible/NUCLab](./Ansible/NUCLab) | Full NUC lab automation: ESXi → DC → vCenter → ONTAP Select → Integration |
-| [Ansible/LabBuilder](./Ansible/LabBuilder) | Multi-role lab builder with OVF deploy, ISO build, and inventory templates |
 
 ---
 

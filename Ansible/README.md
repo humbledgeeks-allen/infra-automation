@@ -10,7 +10,6 @@ Ansible playbooks and roles for automating VMware, NetApp, and lab infrastructur
 | [VMware/HDC](./VMware/HDC) | Hybrid Data Center ESXi playbooks (separate environment/vars) |
 | [NetApp/ONTAP-Learning](./NetApp/ONTAP-Learning) | Step-by-step tutorial series: Ansible for NetApp ONTAP (00–08) |
 | [NUCLab](./NUCLab) | Complete NUC lab automation suite (ESXi → DC → vCenter → ONTAP Select → Integration) |
-| [LabBuilder](./LabBuilder) | Multi-role project for building full lab environments from ISO or OVF |
 
 ---
 
@@ -72,10 +71,3 @@ A complete end-to-end lab automation suite for NUC-based homelab environments.
 | `vars.yml` | Lab variables |
 | `vcenter-properties.yml` | vCenter connection properties |
 
-## LabBuilder
-
-A comprehensive multi-role Ansible project for building full lab environments.
-
-Supports deploying VMs from ISO (CentOS, Ubuntu, Windows, pfSense, Proxmox, XCP-ng) and from OVF (ESXi, vCenter, ONTAP Select, StorageGRID, vSim, AIQUM).
-
-Key files: `main.yml`, `prep.yml`, `requirements.yml`, `inventories/`, `roles/`, `vars/`
