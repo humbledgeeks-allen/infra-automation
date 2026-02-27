@@ -1,0 +1,15 @@
+sitename=MiniLab Portal
+vCenter=10.224.1.20
+vserver=svm1
+VIDatastore=nfs_datastore
+cluster_mgmt=192.168.0.90
+VIPortgroup=VM Network
+VICluster=VI Cluster
+newID=1000
+vswitch=vSwitch1
+vlanbase=1000
+autostart=false
+rdphost=http://192.168.0.21
+rdpdomain=lab
+rdpuser=administrator
+rdppassword=P@ssw0rd

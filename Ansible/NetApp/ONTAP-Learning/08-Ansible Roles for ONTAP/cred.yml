@@ -1,0 +1,6 @@
+netapp_hostname: "192.168.0.90"
+netapp_username: "admin"
+netapp_password: "P@ssw0rd"
+https: true
+validate_certs: false
+cluster: ontap9

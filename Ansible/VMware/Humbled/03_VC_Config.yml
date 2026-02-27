@@ -1,0 +1,64 @@
+--- 
+- hosts: localhost 
+  name: vCenter Basic Configuration 
+  vars:
+    vcenter_login: &vcenter_login
+      hostname: '{{ vcenter_address }}'
+      username: '{{ vcenter_username }}'
+      password: '{{ vcenter_password }}'
+  vars_files: 
+    vars.yml
+  tasks: 
+  - name: Gather facts about vCenter
+    community.vmware.vmware_about_facts:
+     <<: *vcenter_login
+     validate_certs: '{{ validate_certs }}'
+    delegate_to: localhost
+    register: vcenter_about_info
+  - name: Create Datacenter
+    community.vmware.vmware_datacenter:
+      <<: *vcenter_login
+      datacenter_name: '{{ vcenter_datacenter }}'
+      state: present
+      validate_certs: '{{ validate_certs }}'
+    delegate_to: localhost
+  - name: Create Cluster
+    community.vmware.vmware_cluster:
+      <<: *vcenter_login
+      datacenter_name: '{{ vcenter_datacenter }}'
+      cluster_name: '{{ vcenter_cluster }}'
+      validate_certs: '{{ validate_certs }}'
+    delegate_to: localhost
+
+
+
+  - name: Add ESXi Host to vCenter
+    community.vmware.vmware_host:
+      <<: *vcenter_login
+      datacenter: '{{ vcenter_datacenter }}'
+      cluster: '{{ vcenter_cluster }}'
+      esxi_hostname: '{{ item.name }}'
+      esxi_username: '{{ esxi_username }}'
+      esxi_password: '{{ esxi_password }}'
+      validate_certs: '{{ validate_certs }}'
+      state: present
+    delegate_to: localhost
+    loop: '{{ esxi_info }}'
+  - name: Add a new vCenter license
+    community.vmware.vcenter_license:
+      <<: *vcenter_login
+      validate_certs: False
+      license: "{{ vCenter_License }}"
+      state: present
+  - name: Add ESXi license and assign to the ESXi host
+    community.vmware.vcenter_license:
+      <<: *vcenter_login
+      validate_certs: False
+      license: '{{ vSphere_License }}'
+      state: present
+    delegate_to: localhost
+    loop: "{{ esxi_info }}"
+# a brief pause for things to settle
+  - name: sleep for 60 seconds and continue with play
+    wait_for: timeout=60
+    delegate_to: localhost

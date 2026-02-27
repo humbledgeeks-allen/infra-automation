@@ -1,0 +1,52 @@
+--- 
+- hosts: localhost 
+  name: ESXi Basic Configuration 
+  gather_facts: false
+  vars:
+    esxi_login: &esxi_login
+      hostname: '{{ esxi_address }}'
+      username: '{{ esxi_username }}'
+      password: '{{ esxi_password }}'   
+      validate_certs: no 
+    tsm_policy: on
+    tsm_state: present 
+  vars_files: 
+    vars.yml
+  tasks:
+
+  - name: Enable SSH (TSM-SSH) for an ESXi Host with Service policy # Enable SSH on ESXi Host
+    community.vmware.vmware_host_service_manager:
+     <<: *esxi_login
+     esxi_hostname: '{{ esxi_address }}'
+     service_name: TSM-SSH
+     service_policy: on
+     state: present # Chnage to Absent if you want to disable SSH
+    delegate_to: localhost
+
+  - name: Enable ESX Shell (TSM) setting for an ESXi Host with Service policy # Enable SSH Service
+    community.vmware.vmware_host_service_manager:
+     <<: *esxi_login
+     esxi_hostname: '{{ esxi_address }}'
+     service_name: TSM
+     service_policy: on
+     state: present # Chnage to Absent if you want to disable SSH
+    delegate_to: localhost
+
+  - name: Set Advanced Options #Suppress SSH Warning
+    community.vmware.vmware_host_config_manager:
+      <<: *esxi_login
+      esxi_hostname: '{{ esxi_address }}'
+      options:
+        "UserVars.SuppressShellWarning": 1 
+        "Mem.ShareForceSalting": 0
+        "Misc.BlueScreenTimeout": 60
+    delegate_to: localhost
+
+  - name: Configure DNS for an ESXi host
+    community.vmware.vmware_host_dns:
+      <<: *esxi_login
+      domain: '{{ domain_name }}'
+      type: static
+      dns_servers:
+        - '{{ upstream_dns1 }}'
+    delegate_to: localhost

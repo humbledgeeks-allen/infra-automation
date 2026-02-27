@@ -15,13 +15,24 @@
         "*.psd1": "powershell",
         "*.sh": "shellscript",
         "*.yml": "yaml",
-        "*.yaml": "yaml"
+        "*.yaml": "yaml",
+        "hosts.ini": "ini",
+        "*.cfg": "ini",
+        "*.ini": "ini",
+        "requirements.yml": "yaml",
+        "inventory": "ini"
     },
 
     "powershell.integratedConsole.showOnStartup": false,
     "powershell.scriptAnalysis.enable": true,
     "powershell.codeFormatting.preset": "OTBS",
     "powershell.codeFormatting.addWhitespaceAroundPipe": true,
+
+    "ansible.ansible.useFullyQualifiedCollectionNames": true,
+    "ansible.validation.enabled": true,
+    "ansible.validation.lint.enabled": true,
+    "ansible.lightspeed.enabled": false,
+    "redhat.telemetry.enabled": false,
 
     "[powershell]": {
         "editor.tabSize": 4,
@@ -36,6 +47,13 @@
 
     "[yaml]": {
         "editor.tabSize": 2,
-        "editor.insertSpaces": true
+        "editor.insertSpaces": true,
+        "editor.defaultFormatter": "redhat.vscode-yaml"
+    },
+
+    "[ansible]": {
+        "editor.tabSize": 2,
+        "editor.insertSpaces": true,
+        "editor.defaultFormatter": "redhat.ansible"
     }
 }

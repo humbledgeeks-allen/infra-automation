@@ -1,0 +1,106 @@
+---
+- name: Create new Active-Directory Domain & Forest
+  hosts: localhost
+  vars_files:
+   - vars.yml
+  gather_facts: no
+  tasks:
+  - name: Add host to Ansible inventory
+    add_host:
+      name: '{{ dc_address }}'
+      ansible_user: .\administrator
+      ansible_password: '{{ lab_password }}'
+      ansible_connection: winrm
+      ansible_winrm_transport: ntlm
+      ansible_winrm_server_cert_validation: ignore
+      ansible_winrm_port: 5986
+  - name: Wait for system to become reachable over WinRM
+    wait_for_connection:
+      timeout: 900
+    delegate_to: '{{ dc_address }}'
+  - name: Set upstream DNS server 
+    win_dns_client:
+      adapter_names: '*'
+      ipv4_addresses:
+      - '{{ lab_upstream_dns }}'
+    delegate_to: '{{ dc_address }}'
+  - name: Disable firewall for Domain, Public and Private profiles
+    win_firewall:
+      state: disabled
+      profiles:
+      - Domain
+      - Private
+      - Public
+    tags: disable_firewall
+    delegate_to: '{{ dc_address }}'
+  - name: Change the hostname 
+    win_hostname:
+      name: '{{ dc_hostname }}'
+    register: res
+    delegate_to: '{{ dc_address }}'
+  - name: Reboot
+    win_reboot:
+    when: res.reboot_required   
+    delegate_to: '{{ dc_address }}'
+  - name: Install Active Directory
+    win_feature: >
+         name=AD-Domain-Services
+         include_management_tools=yes
+         include_sub_features=yes
+         state=present
+    register: result
+    delegate_to: '{{ dc_address }}'
+  - name: Create Domain
+    win_domain: >
+       dns_domain_name='{{ lab_domain }}'
+       safe_mode_password='{{ lab_password }}'
+    register: ad
+    delegate_to: "{{ dc_address }}"
+  - name: reboot server
+    win_reboot:
+     msg: "Installing AD. Rebooting..."
+     pre_reboot_delay: 15
+    when: ad.changed
+    delegate_to: "{{ dc_address }}"
+  - name: Set internal DNS server 
+    win_dns_client:
+      adapter_names: '*'
+      ipv4_addresses:
+      - '127.0.0.1'
+    delegate_to: '{{ dc_address }}'
+  - name: Create DNS record for ESXi
+    win_dns_record:
+      name: '{{ esxi_hostname }}'
+      type: "A"
+      state: present
+      value: '{{ esxi_address }}'
+      zone: '{{ lab_domain }}'
+    delegate_to: "{{ dc_address }}"
+  - name: Create DNS record for vCenter
+    win_dns_record:
+      name: '{{ vcenter_hostname }}'
+      type: "A"
+      state: present
+      value: '{{ vcenter_address }}'
+      zone: '{{ lab_domain }}'
+    delegate_to: "{{ dc_address }}"
+  - name: Create DNS record for ONTAP
+    win_dns_record:
+      name: '{{ ontap_hostname }}'
+      type: "A"
+      state: present
+      value: '{{ ontap_address }}'
+      zone: '{{ lab_domain }}'
+    delegate_to: "{{ dc_address }}"
+  - name: Check for xRemoteDesktopAdmin Powershell module
+    win_psmodule:
+      name: xRemoteDesktopAdmin
+      state: present
+    delegate_to: "{{ dc_address }}"
+  - name: Enable Remote Desktop
+    win_dsc:
+      resource_name: xRemoteDesktopAdmin
+      Ensure: present
+      UserAuthentication: NonSecure
+    delegate_to: "{{ dc_address }}"
+

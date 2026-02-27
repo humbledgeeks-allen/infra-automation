@@ -1,0 +1,134 @@
+--- 
+- hosts: localhost 
+  name: ESXi Configuration 
+  gather_facts: false
+  vars:
+    esxi_login: &esxi_login
+      hostname: '{{ esxi_address }}'  
+      username: '{{ esxi_username }}'
+      password: '{{ esxi_password }}'   
+      validate_certs: no 
+    tsm_policy: on
+    tsm_state: present
+  vars_files: 
+    vars.yml
+  tasks: 
+  - name: Add ESXi host for SSH access
+    add_host:
+      name: '{{ esxi_address }}'
+      group: "esx"
+      ansible_user: '{{ esxi_username }}'
+      ansible_password: '{{ esxi_password }}'
+      ansible_ssh_common_args: '-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no'
+  - name: Enable SSH (TSM-SSH)
+    community.vmware.vmware_host_service_manager:
+      <<: *esxi_login
+      esxi_hostname: '{{ esxi_address }}'
+      service_name: TSM-SSH
+      service_policy: '{{ tsm_policy }}'
+      state: '{{ tsm_state }}'
+    delegate_to: localhost
+  - name: Enable ESX Shell (TSM)
+    community.vmware.vmware_host_service_manager:
+      <<: *esxi_login
+      esxi_hostname: '{{ esxi_address }}'
+      service_name: TSM
+      service_policy: '{{ tsm_policy }}'
+      state: '{{ tsm_state }}'
+    delegate_to: localhost
+  - name: Set Advanced Options
+    community.vmware.vmware_host_config_manager:
+      <<: *esxi_login
+      esxi_hostname: '{{ esxi_address }}'
+      options:
+        "UserVars.ESXiShellInteractiveTimeOut": 900
+        "UserVars.ESXiShellTimeOut": 900
+        "UserVars.DcuiTimeOut": 600
+        "Security.AccountLockFailures": 5
+        "Security.AccountUnlockTime": 900
+        "Security.PasswordQualityControl": "similar=deny retry=3 min=disabled,disabled,disabled,disabled,15"
+        "UserVars.SuppressShellWarning": 1 
+        "Mem.ShareForceSalting": 0
+        "Misc.BlueScreenTimeout": 60
+        "Config.HostAgent.plugins.solo.enableMob": false 
+    delegate_to: localhost
+  - name: Set Advanced Option NFS NetAPP VSC Values
+    community.vmware.vmware_host_config_manager:
+      <<: *esxi_login
+      esxi_hostname: '{{ esxi_address }}'
+      options:
+        "Net.TcpipHeapSize": 32
+        "Net.TcpipHeapMax": 1536
+        "NFS.MaxVolumes": 256
+        "NFS41.MaxVolumes": 256
+        "NFS.MaxQueueDepth": 128
+        "NFS.HeartbeatMaxFailures": 10
+        "NFS.HeartbeatFrequency": 12
+        "NFS.HeartbeatTimeout": 5
+        "Disk.QFullSampleSize": 32
+        "Disk.QFullThreshold": 8
+    delegate_to: localhost
+  - name: Manage Firewall Rules
+    community.vmware.vmware_host_firewall_manager:
+      <<: *esxi_login
+      esxi_hostname: '{{ esxi_address }}'      
+      rules:
+        - name: remoteSerialPort 
+          enabled: true
+          allowed_host:
+            all_ip: true
+    delegate_to: localhost
+  - name: Configure ESXi hostname and upstream DNS servers
+    community.vmware.vmware_host_dns:
+      <<: *esxi_login
+      domain: '{{ domain_name }}'
+      type: static 
+      dns_servers:
+      - '{{ upstream_dns1 }}'
+      - '{{ upstream_dns2 }}'
+    delegate_to: localhost
+  - name: Set NTP servers for an ESXi Host # Configure Host NTP Settings 
+    community.vmware.vmware_host_ntp:
+      <<: *esxi_login
+      esxi_hostname: '{{ esxi_hostname }}'
+      state: present
+      ntp_servers:
+        - '{{ upstream_ntp1 }}'
+        - '{{ upstream_ntp2 }}'
+    delegate_to: localhost
+  - name: Start ntpd service setting for all ESXi Host in given Cluster # Enable  NTP Service
+    community.vmware.vmware_host_service_manager:
+      <<: *esxi_login
+      esxi_hostname: '{{ esxi_hostname }}'
+      service_name: ntpd
+      service_policy: on
+      state: present
+    delegate_to: localhost
+  - name: Copy VAAI vib to esx host
+    copy:
+      src: '{{ files_path }}/{{ vaai_plugin }}'
+      dest: '/vmfs/volumes/{{ esxi_local_datastore }}/NetAppNasPlugin.vib'
+    delegate_to: '{{ esxi_address }}'
+  - name: Install the VAAI vib 
+    shell: 'esxcli software vib install -v /vmfs/volumes/{{ esxi_local_datastore }}/NetAppNasPlugin.vib'
+    args:
+      creates: /bootbank/netappna.v00
+    ignore_errors: yes
+    delegate_to: '{{ esxi_address }}'
+    register: installvib
+  - name: Reboot-Host
+    vmware_host_powerstate:
+      <<: *esxi_login
+      esxi_hostname: '{{ esxi_address }}'   
+      state: reboot-host
+      force: yes
+    delegate_to: localhost
+    when: installvib.changed
+  - name: Wait for Host Reboot
+    wait_for:
+      port: 443
+      host: '{{ esxi_address }}'
+      delay: 120
+      timeout: 300
+    connection: local
+    when: installvib.changed

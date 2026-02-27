@@ -1,0 +1,81 @@
+---
+- hosts: localhost 
+  name: Deploy ONTAP Select Single Node Cluster
+  gather_facts: false
+  vars:
+    validate_certs: no
+    ontap_node_name: "{{ ontap_hostname }}-01"
+  vars_files: 
+    vars.yml
+  tasks:
+  - vmware_deploy_ovf:
+      hostname: '{{ vcenter_address }}'
+      username: '{{ vcenter_username }}'
+      password: '{{ lab_password }}'
+      datacenter: '{{ vcenter_datacenter }}'
+      cluster: '{{ vcenter_cluster }}'
+      datastore: '{{ esxi_local_datastore }}'
+      name: '{{ ontap_hostname }}'
+      ovf: '{{ files_path }}/{{ ontap_select_ova }}'
+      disk_provisioning: thin
+      power_on: no
+      wait_for_ip_address: false
+      validate_certs: no
+      inject_ovf_env: true
+      properties:
+        DeploymentOption.value: 'ONTAPSelectEVALSmall' # <=9.5 use 'ONTAPSelectEVAL', 9.6+ use 'ONTAPSelectEVALSmall'
+        clustername: '{{ ontap_hostname }}'
+        Data-disk: '{{ ontap_data_disk_gb }}'
+        cluster_mgmt_ipaddr: '{{ ontap_address }}' 
+        node_mgmt_ipaddr: '{{ ontap_node_address }}' 
+        netmask: '{{ lab_netmask }}' 
+        gateway: '{{ lab_gateway }}' 
+        node_name: '{{ ontap_node_name }}' 
+        password: '{{ lab_password }}' 
+    delegate_to: localhost
+    retries: 10
+    delay: 60
+    register: result           
+    until: result is succeeded 
+  - name: Adjust VM Sizing
+    vmware_guest:
+      hostname: '{{ vcenter_address }}'
+      username: '{{ vcenter_username }}'
+      password: '{{ lab_password }}'
+      validate_certs: no
+      name: '{{ ontap_hostname }}'
+      state: present
+      hardware:
+        memory_mb: '{{ ontap_memory_mb }}'
+        num_cpus: '{{ ontap_num_vcpus }}'
+        memory_reservation_lock: true
+        cpu_reservation: 1000 # ensure enough CPU to flush nvram when host is overloaded
+      customvalues:
+        - key: pciHole.start
+          value: 1024  # Moving the PCI hole here gives ONTAP access to more system ram
+    delegate_to: localhost
+  - name: Start VM
+    vmware_guest:
+      hostname: '{{ vcenter_address }}'
+      username: '{{ vcenter_username }}'
+      password: '{{ lab_password }}'
+      validate_certs: no
+      name: '{{ ontap_hostname }}'
+      state: poweredon
+      wait_for_ip_address: false
+    delegate_to: localhost
+  # Wait until ONTAP is responsive
+  - name: Get NetApp info
+    na_ontap_gather_facts:
+      state: info
+      hostname: "{{ ontap_address }}"
+      username: admin
+      password: "{{ lab_password }}"
+      https: true
+      validate_certs: false 
+    delegate_to: localhost
+    retries: 20
+    delay: 60
+    register: result           
+    until: result is succeeded 
+

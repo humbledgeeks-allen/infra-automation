@@ -1,0 +1,286 @@
+--- 
+- hosts: localhost 
+  name: ESXi Basic Configuration 
+  gather_facts: false
+  vars:
+    esxi_login: &esxi_login
+      hostname: '{{ item.name }}'
+      username: '{{ esxi_username }}'
+      password: '{{ esxi_password }}'   
+      validate_certs: no 
+    tsm_policy: on
+    tsm_state: present 
+  vars_files: 
+    vars.yml
+  tasks:
+  - name: Add ESXi host for SSH access
+    add_host:
+      name: '{{ item.name }}'
+      ansible_user: '{{ esxi_username }}'
+      ansible_password: '{{ esxi_password }}'
+      ansible_ssh_common_args: '-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no'
+    loop: '{{ esxi_info }}'
+  - name: Enable SSH (TSM-SSH) for an ESXi Host with Service policy # Enable SSH on ESXi Host
+    community.vmware.vmware_host_service_manager:
+     <<: *esxi_login
+     esxi_hostname: '{{ item.name }}'
+     service_name: TSM-SSH
+     service_policy: on
+     state: present # Chnage to Absent if you want to disable SSH
+    delegate_to: localhost
+    loop: '{{ esxi_info }}'
+  - name: Enable ESX Shell (TSM) setting for an ESXi Host with Service policy # Enable SSH Service
+    community.vmware.vmware_host_service_manager:
+     <<: *esxi_login
+     esxi_hostname: '{{ item.name }}'
+     service_name: TSM
+     service_policy: on
+     state: present # Chnage to Absent if you want to disable SSH
+    delegate_to: localhost
+    loop: '{{ esxi_info }}'
+  - name: Set Advanced Options #Suppress SSH Warning
+    community.vmware.vmware_host_config_manager:
+      <<: *esxi_login
+      esxi_hostname: '{{ item.name }}'
+      options:
+        "UserVars.SuppressShellWarning": 1 
+        "Mem.ShareForceSalting": 0
+        "Misc.BlueScreenTimeout": 60
+    delegate_to: localhost
+    loop: '{{ esxi_info }}'
+  - name: Join an ESXi Host AD domain # Join ESX Host's to AD for future Security Hardening
+    community.vmware.vmware_host_active_directory:
+       <<: *esxi_login
+       esxi_hostname: '{{ item.name }}'
+       ad_domain: '{{ domain_name }}'
+       ad_user: '{{ ad_user }}'
+       ad_password: '{{ ad_password }}'
+       ad_state: absent
+    delegate_to: localhost
+    loop: '{{ esxi_info }}'
+  - name: Add vMotion VM Portgroup
+    community.vmware.vmware_portgroup:
+      validate_certs: '{{ validate_certs }}'
+      hosts: "{{ item.name }}"
+      hostname: "{{ item.name }}"
+      username: "{{ esxi_username }}"
+      password: "{{ esxi_password }}"
+      switch: "{{ default_esx_vswitch }}"
+      portgroup: "{{ vMotionPortGroup }}"
+      vlan_id: "{{ vmo_vlan }}"
+      security:
+        promiscuous_mode: False
+        mac_changes: False
+        forged_transmits: False
+      traffic_shaping:
+        enabled: True
+        average_bandwidth: 100000
+        peak_bandwidth: 100000
+        burst_size: 102400
+      teaming:
+        load_balancing: failover_explicit
+        network_failure_detection: link_status_only
+        notify_switches: true
+        failback: true
+        active_adapters:
+            - vmnic0
+        standby_adapters:
+        #    - vmnic1 
+    register: teaming_result
+    delegate_to: localhost
+    loop: '{{ esxi_info }}' # Create vMotion Portgroup on vSwitch0 (Active / Standby)
+  - name: Add vMotion vmkernel port using static network type
+    community.vmware.vmware_vmkernel:
+      validate_certs: '{{ validate_certs }}'
+      hostname: "{{ item.name }}"
+      esxi_hostname: "{{ item.name }}"
+      username: "{{ esxi_username }}"
+      password: "{{ esxi_password }}"
+      vswitch_name: "{{ default_esx_vswitch }}"
+      portgroup_name: "{{ vMotionPortGroup }}"
+      network:
+       type: 'static'
+       ip_address: '{{ item.vmo }}'
+       subnet_mask: '{{ item.netmask }}'
+       tcpip_stack: vmotion
+      state: present
+    delegate_to: localhost
+    loop: '{{ esxi_info }}' # Create vMotion vmKernel with vMotion TCPIP Stack
+  - name: Add NFS Storage VM Portgroup
+    community.vmware.vmware_portgroup:
+      validate_certs: '{{ validate_certs }}'
+      hosts: "{{ item.name }}"
+      hostname: "{{ item.name }}"
+      username: "{{ esxi_username }}"
+      password: "{{ esxi_password }}"
+      switch: "{{ default_esx_vswitch }}"
+      portgroup: "{{ NFSPortGroup }}"
+      vlan_id: "{{ nfs_vlan }}"
+      security:
+        promiscuous_mode: False
+        mac_changes: False
+        forged_transmits: False
+      traffic_shaping:
+        enabled: True
+        average_bandwidth: 100000
+        peak_bandwidth: 100000
+        burst_size: 102400
+      teaming:
+        load_balancing: failover_explicit
+        network_failure_detection: link_status_only
+        notify_switches: true
+        failback: true
+        active_adapters:
+            - vmnic0
+        standby_adapters:
+        #    - vmnic1 
+    register: teaming_result
+    delegate_to: localhost
+    loop: '{{ esxi_info }}' # Create NFS Storage Portgroup. Used to mount NFS Storage DataStores
+  - name: Add NFS vmkernel port using static network type
+    community.vmware.vmware_vmkernel:
+      validate_certs: '{{ validate_certs }}'
+      hostname: "{{ item.name }}"
+      esxi_hostname: "{{ item.name }}"
+      username: "{{ esxi_username }}"
+      password: "{{ esxi_password }}"
+      vswitch_name: "{{ default_esx_vswitch }}"
+      portgroup_name: "{{ NFSPortGroup }}"
+      network:
+       type: 'static'
+       ip_address: '{{ item.nfs_ip }}'
+       subnet_mask: '{{ item.netmask }}'
+      state: present
+    delegate_to: localhost
+    loop: '{{ esxi_info }}' # Create NFS vmKernel with Static IP
+  - name: Add VMDATA Portgroup with all settings defined. # VMDATA Port Group. Used for VMs Network Traffic.
+    community.vmware.vmware_portgroup:
+      <<: *esxi_login
+      esxi_hostname: "{{ item.name }}"
+      switch: "{{ default_esx_vswitch }}"
+      portgroup: "{{ vmdataPortGroup }}"
+      vlan_id: '{{ vdata_vlan }}'
+      security:
+        promiscuous_mode: False
+        mac_changes: False
+        forged_transmits: False
+      traffic_shaping:
+        enabled: True
+        average_bandwidth: 100000
+        peak_bandwidth: 100000
+        burst_size: 102400
+      teaming:
+        load_balancing: failover_explicit
+        network_failure_detection: link_status_only
+        notify_switches: true
+        failback: true
+        active_adapters:
+            - vmnic0
+        standby_adapters:
+        #    - vmnic1
+    delegate_to: localhost
+    register: teaming_result
+    loop: '{{ esxi_info }}'
+  - name: Set Advance ESXi and NetApp VSC Values. # Apply VMware / NetApp NFS Best Practices
+    community.vmware.vmware_host_config_manager:
+      <<: *esxi_login
+      esxi_hostname: '{{ item.name }}'
+      options:
+        "Net.TcpipHeapSize": 32
+        "Net.TcpipHeapMax": 1536
+        "NFS.MaxVolumes": 256
+        "NFS41.MaxVolumes": 256
+        "NFS.MaxQueueDepth": 128
+        "NFS.HeartbeatMaxFailures": 10
+        "NFS.HeartbeatFrequency": 12
+        "NFS.HeartbeatTimeout": 5
+        "Disk.QFullSampleSize": 32
+        "Disk.QFullThreshold": 8
+    delegate_to: localhost
+    loop: '{{ esxi_info }}'
+  - name: Configure ESXi hostname and upstream DNS servers # Configure Host DNS Settings
+    community.vmware.vmware_dns_config:
+      <<: *esxi_login
+      change_hostname_to: '{{ esxi_hostname }}'
+      domainname: '{{ domain_name }}'
+      dns_servers:
+      - '{{ upstream_dns1 }}'
+      - '{{ upstream_dns2 }}'
+    delegate_to: localhost
+    loop: '{{ esxi_info }}'
+  - name: Set NTP servers for an ESXi Host # Configure Host NTP Settings 
+    community.vmware.vmware_host_ntp:
+      <<: *esxi_login
+      esxi_hostname: '{{ esxi_hostname }}'
+      state: present
+      ntp_servers:
+        - '{{ upstream_ntp1 }}'
+        - '{{ upstream_ntp2 }}'
+    delegate_to: localhost
+    loop: '{{ esxi_info }}'
+  - name: Start ntpd service setting for all ESXi Host in given Cluster # Enable  NTP Service
+    community.vmware.vmware_host_service_manager:
+      <<: *esxi_login
+      esxi_hostname: '{{ esxi_hostname }}'
+      service_name: ntpd
+      service_policy: on
+      state: present
+    delegate_to: localhost
+    loop: '{{ esxi_info }}'
+  - name: Enable Firewall rule set for an ESXi Host # Enable Firewall rules
+    community.vmware.vmware_host_firewall_manager:
+      <<: *esxi_login
+      esxi_hostname: '{{ item.name }}'
+      rules:
+        - name: remoteSerialPort
+          enabled: True
+    delegate_to: localhost
+    loop: '{{ esxi_info }}'
+  - name: Mount NFS datastores to ESXi # Mount NFS DataStore. Storage must have NFS Datastores created.
+    community.vmware.vmware_host_datastore:
+      <<: *esxi_login
+      datastore_name: '{{ ext_storage_ds_name }}'
+      datastore_type: '{{ ext_storage_ds_type }}'
+      nfs_server: '{{ ext_storage_nfs_server }}'
+      nfs_path: '{{ ext_storage_nfs_path }}'
+      nfs_ro: no
+      esxi_hostname: '{{ item.name }}'
+      state: present
+    delegate_to: localhost
+    loop: '{{ esxi_info }}'
+  - name: Copy NetApp VAAI vib to esx host # Install NetAPP VIB
+    copy:
+      src: '{{ files_path }}/{{ vaai_plugin }}'
+      dest: '/vmfs/volumes/{{ shared_datastore }}/NetAppNasPlugin.vib'
+    delegate_to: '{{ item.name }}'
+    loop: '{{ esxi_info }}'
+  - name: Install the NetApp VAAI vib 
+    shell: 'esxcli software vib install -v /vmfs/volumes/{{ shared_datastore }}/NetAppNasPlugin.vib'
+    args:
+      creates: /bootbank/netappna.v00
+    ignore_errors: yes
+    delegate_to: '{{ item.name }}'
+    loop: '{{ esxi_info }}'
+    register: installvib
+  - name: Reboot-Host
+    vmware_host_powerstate:
+      <<: *esxi_login
+      esxi_hostname: '{{ item.name }}'   
+      state: reboot-host
+      force: yes
+    delegate_to: localhost
+    loop: '{{ esxi_info }}'
+    when: installvib.changed
+  - name: Wait for Host Reboot
+    wait_for:
+      port: 443
+      host: '{{ item.name }}'
+      delay: 120
+      timeout: 300
+    connection: local
+    when: installvib.changed
+    loop: '{{ esxi_info }}'
+
+
+
+

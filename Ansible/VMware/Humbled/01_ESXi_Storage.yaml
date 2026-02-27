@@ -1,0 +1,27 @@
+--- 
+- hosts: localhost 
+  name: ESXi Basic Configuration 
+  gather_facts: false
+  vars:
+    esxi_login: &esxi_login
+      hostname: '{{ item.name }}'
+      username: '{{ esxi_username }}'
+      password: '{{ esxi_password }}'   
+      validate_certs: no 
+    tsm_policy: on
+    tsm_state: present 
+  vars_files: 
+    vars.yml
+  tasks:
+  - name: Mount NFS datastores to ESXi # Mount NFS DataStore. Storage must have NFS Datastores created.
+    community.vmware.vmware_host_datastore:
+      <<: *esxi_login
+      datastore_name: '{{ ext_storage_ds_name }}'
+      datastore_type: '{{ ext_storage_ds_type }}'
+      nfs_server: '{{ ext_storage_nfs_server }}'
+      nfs_path: '{{ ext_storage_nfs_path }}'
+      nfs_ro: no
+      esxi_hostname: '{{ item.name }}'
+      state: present
+    delegate_to: localhost
+    loop: '{{ esxi_info }}'

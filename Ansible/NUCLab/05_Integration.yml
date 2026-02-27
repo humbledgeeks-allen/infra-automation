@@ -1,0 +1,104 @@
+---
+- hosts: localhost
+  gather_facts: false
+  name: Integration Tasks
+  vars:
+    https: true
+    validate_certs: false
+    esxi_fqdn: '{{esxi_hostname}}.{{lab_domain}}'
+  vars_files: 
+    vars.yml
+  tasks: 
+  - name: Mount NFS labs datastore to ESXi
+    vmware_host_datastore:
+      hostname: '{{ esxi_address }}'
+      username: '{{ esxi_username }}'
+      password: '{{ lab_password }}'
+      esxi_hostname: '{{ esxi_fqdn }}'
+      validate_certs: no
+      datastore_name: "{{ ontap_vol_labs }}"
+      datastore_type: 'nfs'
+      nfs_server: '{{ ontap_svm_address }}'
+      nfs_path: "/{{ ontap_vol_labs }}"
+      nfs_ro: no
+      state: present
+    delegate_to: localhost
+  - name: Mount NFS install datastore to ESXi
+    vmware_host_datastore:
+      hostname: '{{ esxi_address }}'
+      username: '{{ esxi_username }}'
+      password: '{{ lab_password }}'
+      esxi_hostname: '{{ esxi_fqdn }}'
+      validate_certs: no
+      datastore_name: "{{ ontap_vol_install }}"
+      datastore_type: 'nfs'
+      nfs_server: '{{ ontap_svm_address }}'
+      nfs_path: "/{{ ontap_vol_install }}"
+      nfs_ro: no
+      state: present
+    delegate_to: localhost
+  - name: Reserve vCenter RAM
+    vmware_guest:
+      hostname: '{{ vcenter_address }}'
+      username: '{{ vcenter_username }}'
+      password: '{{ lab_password }}'
+      validate_certs: no
+      name: '{{ vcenter_hostname }}'
+      state: present
+      hardware:
+        memory_reservation_lock: true
+    delegate_to: localhost
+  - name: Reserve DC RAM
+    vmware_guest:
+      hostname: '{{ vcenter_address }}'
+      username: '{{ vcenter_username }}'
+      password: '{{ lab_password }}'
+      validate_certs: no
+      name: '{{ dc_hostname }}'
+      state: present
+      hardware:
+        memory_reservation_lock: true
+    delegate_to: localhost
+# - hosts: localhost
+#   vars_files: 
+#     vars.yml
+#   tasks:
+  - add_host:
+      name: '{{ esxi_address }}'
+      group: "esx"
+      ansible_user: '{{ esxi_username }}'
+      ansible_password: '{{ lab_password }}'
+      ansible_ssh_common_args: '-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no'
+  - name: Enable Autostart
+    shell: vim-cmd hostsvc/autostartmanager/enable_autostart true
+    register: autostartmanager
+    changed_when: false
+    ignore_errors: yes
+    delegate_to: '{{ esxi_address }}'
+  - name: Update Autostart defaults
+    shell: vim-cmd hostsvc/autostartmanager/update_defaults "120" "120" "guestShutdown" "yes"
+    register: autostartmanager
+    changed_when: false
+    ignore_errors: yes
+    delegate_to: '{{ esxi_address }}'
+  - name: Set Autostart order for ONTAP Select
+    shell: 'vim-cmd hostsvc/autostartmanager/update_autostartentry $(vim-cmd vmsvc/getallvms | grep {{ ontap_hostname }} | cut -d" " -f1) "powerOn" "120" "1" "guestShutdown" "120" "yes"'
+    register: autostartmanager
+    changed_when: false
+    ignore_errors: yes
+    delegate_to: '{{ esxi_address }}'
+  - name: Set Autostart order for DC
+    shell: 'vim-cmd hostsvc/autostartmanager/update_autostartentry $(vim-cmd vmsvc/getallvms | grep {{ dc_hostname }} | cut -d" " -f1) "powerOn" "120" "2" "guestShutdown" "120" "yes"'
+    register: autostartmanager
+    changed_when: false
+    ignore_errors: yes
+    delegate_to: '{{ esxi_address }}'
+  - name: Set Autostart order for vCenter
+    shell: 'vim-cmd hostsvc/autostartmanager/update_autostartentry $(vim-cmd vmsvc/getallvms | grep {{ vcenter_hostname }} | cut -d" " -f1) "powerOn" "120" "3" "guestShutdown" "120" "yes"'
+    register: autostartmanager
+    changed_when: false
+    ignore_errors: yes
+    delegate_to: '{{ esxi_address }}'
+
+
+

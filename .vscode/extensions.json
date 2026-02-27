@@ -5,8 +5,10 @@
         "ms-python.python",
         "ms-vscode.powershell",
         "redhat.ansible",
+        "redhat.vscode-yaml",
         "davidanson.vscode-markdownlint",
         "yzhang.markdown-all-in-one",
-        "streetsidesoftware.code-spell-checker"
+        "streetsidesoftware.code-spell-checker",
+        "ms-vscode.vscode-node-azure-pack"
     ]
 }
