@@ -1,10 +1,13 @@
-# NetApp Scripts
+# NetApp
 
-Automation scripts for NetApp storage infrastructure management.
+Automation scripts and playbooks for NetApp storage infrastructure.
 
-## Subfolders
+## Structure
 
 | Folder | Description |
 |--------|-------------|
-| [ONTAP](./ONTAP) | ONTAP storage management and automation scripts |
-| [StorageGRID](./StorageGRID) | StorageGRID object storage management scripts |
+| [ONTAP/PowerShell](./ONTAP/PowerShell) | ONTAP setup scripts, NFS plugin install, disk serial reference |
+| [ONTAP/Ansible](./ONTAP/Ansible) | Ansible for NetApp ONTAP — step-by-step learning series (00–08) |
+| [StorageGRID/](./StorageGRID) | StorageGRID automation (placeholder) |
+
+Each subfolder contains `PowerShell/` and/or `Ansible/` directories grouping scripts by tool.

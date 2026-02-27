@@ -1,59 +1,61 @@
 # infra-automation
 
-A collection of automation scripts and operational runbooks for VMware, NetApp, Cisco, and Linux infrastructure management.
+A collection of automation scripts and playbooks for VMware, NetApp, Cisco, and Linux infrastructure management. Scripts are organized by **technology domain** first, then by **tool** (PowerShell or Ansible) within each domain.
 
 ## Structure
 
 | Folder | Description |
 |--------|-------------|
-| [VMware](./VMware) | PowerCLI scripts for ESXi, vCenter, vSAN, NSX, and vLab management |
-| [NetApp](./NetApp) | PowerCLI scripts for ONTAP and StorageGRID |
-| [Cisco](./Cisco) | Scripts for UCS |
-| [Linux](./Linux) | Scripts for Ubuntu servers, Docker, and Synology NAS |
-| [Ansible](./Ansible) | Ansible playbooks and roles for VMware, NetApp, and lab automation |
+| [VMware/](./VMware) | ESXi, vCenter, NSX, vSAN — PowerShell and Ansible |
+| [NetApp/](./NetApp) | ONTAP and StorageGRID — PowerShell and Ansible |
+| [NUCLab/](./NUCLab) | End-to-end NUC homelab builder — Ansible |
+| [Linux/](./Linux) | Ubuntu and Synology — Shell scripts |
+| [Cisco/](./Cisco) | UCS (placeholder) |
 
 ---
 
-### VMware (PowerShell / PowerCLI)
+### VMware
 
-| Subfolder | Description |
-|-----------|-------------|
-| [VMware/ESXi/Hardening](./VMware/ESXi/Hardening) | ESXi advanced settings hardening (V4 and V6h) |
-| [VMware/ESXi/Host-Config](./VMware/ESXi/Host-Config) | Host configuration: NTP, DNS, networking, vSwitch, NFS/iSCSI vmk |
-| [VMware/ESXi/NFS](./VMware/ESXi/NFS) | NFS best practices settings and NetApp VIB plugin installation |
-| [VMware/vCenter](./VMware/vCenter) | VM deployment and lab restore scripts |
-| [VMware/vCenter/vLab](./VMware/vCenter/vLab) | vLab management scripts (PowerShell + Node.js) |
-| [VMware/vSAN](./VMware/vSAN) | vSAN automation (in progress) |
-| [VMware/NSX](./VMware/NSX) | NSX automation (in progress) |
-
----
-
-### Ansible
-
-| Subfolder | Description |
-|-----------|-------------|
-| [Ansible/VMware/Humbled](./Ansible/VMware/Humbled) | HumbledGeeks ESXi, Storage, DC, and vCenter playbooks |
-| [Ansible/VMware/HDC](./Ansible/VMware/HDC) | Hybrid Data Center ESXi configuration playbooks |
-| [Ansible/NetApp/ONTAP-Learning](./Ansible/NetApp/ONTAP-Learning) | Step-by-step Ansible for NetApp ONTAP tutorial series (00–08) |
-| [Ansible/NUCLab](./Ansible/NUCLab) | Full NUC lab automation: ESXi → DC → vCenter → ONTAP Select → Integration |
+| Subfolder | Tool | Description |
+|-----------|------|-------------|
+| [VMware/ESXi/PowerShell/Hardening](./VMware/ESXi/PowerShell/Hardening) | PowerShell | ESXi advanced settings hardening (V4 and V6h) |
+| [VMware/ESXi/PowerShell/Host-Config](./VMware/ESXi/PowerShell/Host-Config) | PowerShell | Host configuration: NTP, DNS, networking, vSwitch, NFS/iSCSI vmk |
+| [VMware/ESXi/PowerShell/NFS](./VMware/ESXi/PowerShell/NFS) | PowerShell | NFS best practices settings and NetApp VIB plugin installation |
+| [VMware/ESXi/Ansible/Humbled](./VMware/ESXi/Ansible/Humbled) | Ansible | HumbledGeeks ESXi, Storage, DC, and vCenter playbooks |
+| [VMware/ESXi/Ansible/HDC](./VMware/ESXi/Ansible/HDC) | Ansible | Hybrid Data Center ESXi configuration playbooks |
+| [VMware/vCenter/PowerShell](./VMware/vCenter/PowerShell) | PowerShell | VM deployment and lab restore scripts |
+| [VMware/vCenter/PowerShell/vLab](./VMware/vCenter/PowerShell/vLab) | PowerShell | vLab management suite (30+ scripts + Node.js portal) |
+| [VMware/NSX](./VMware/NSX) | — | NSX automation (placeholder) |
+| [VMware/vSAN](./VMware/vSAN) | — | vSAN automation (placeholder) |
 
 ---
 
-### NetApp (PowerShell)
+### NetApp
 
-| Subfolder | Description |
-|-----------|-------------|
-| [NetApp/ONTAP](./NetApp/ONTAP) | Cluster setup commands, NFS plugin installation, disk serial references |
-| [NetApp/StorageGRID](./NetApp/StorageGRID) | StorageGRID automation (in progress) |
+| Subfolder | Tool | Description |
+|-----------|------|-------------|
+| [NetApp/ONTAP/PowerShell](./NetApp/ONTAP/PowerShell) | PowerShell | Cluster setup, NFS plugin installation, disk serial references |
+| [NetApp/ONTAP/Ansible/ONTAP-Learning](./NetApp/ONTAP/Ansible/ONTAP-Learning) | Ansible | Step-by-step Ansible for NetApp ONTAP tutorial series (00–08) |
+| [NetApp/StorageGRID](./NetApp/StorageGRID) | — | StorageGRID automation (placeholder) |
+
+---
+
+### NUCLab
+
+| Subfolder | Tool | Description |
+|-----------|------|-------------|
+| [NUCLab/Ansible](./NUCLab/Ansible) | Ansible | Full NUC lab build: ESXi → DC → vCenter → ONTAP Select → Integration |
 
 ---
 
 ### Linux
 
-| Subfolder | Description |
-|-----------|-------------|
-| [Linux/Ubuntu](./Linux/Ubuntu) | Ubuntu server setup, Docker installation, and Docker Compose configs |
-| [Linux/Synology](./Linux/Synology) | Synology NAS backup and sync scripts |
+| Subfolder | Tool | Description |
+|-----------|------|-------------|
+| [Linux/Ubuntu](./Linux/Ubuntu) | Shell | Ubuntu server setup, Docker installation, and Docker Compose configs |
+| [Linux/Synology](./Linux/Synology) | Shell | Synology NAS backup and sync scripts |
+
+---
 
 ## VS Code
 
@@ -61,4 +63,4 @@ Open this repo in VS Code — recommended extensions will be suggested automatic
 
 ## Contributing
 
-Place scripts in the appropriate subfolder and include inline comments describing purpose, author, and date.
+Place scripts in the appropriate `Technology/Component/Tool/` subfolder and include inline comments describing purpose, author, and date.

@@ -1,12 +1,14 @@
-# VMware Scripts
+# VMware
 
-Automation scripts for VMware infrastructure management.
+Automation scripts and playbooks for the VMware stack — ESXi, vCenter, NSX, and vSAN.
 
-## Subfolders
+## Structure
 
 | Folder | Description |
 |--------|-------------|
-| [ESXi](./ESXi) | Host-level scripts for ESXi management |
-| [vCenter](./vCenter) | vCenter Server automation and configuration scripts |
-| [vSAN](./vSAN) | vSAN cluster management and monitoring scripts |
-| [NSX](./NSX) | NSX network virtualization scripts |
+| [ESXi/](./ESXi) | ESXi host hardening, configuration, and NFS — PowerShell and Ansible |
+| [vCenter/](./vCenter) | vCenter VM deployment and vLab management — PowerShell |
+| [NSX/](./NSX) | NSX automation (placeholder) |
+| [vSAN/](./vSAN) | vSAN automation (placeholder) |
+
+Each subfolder contains `PowerShell/` and/or `Ansible/` directories grouping scripts by tool.
